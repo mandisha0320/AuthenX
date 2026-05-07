@@ -1,0 +1,2020 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>AuthenX — AI Detection Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #040609;
+    --surface: #080d14;
+    --surface2: #0d1520;
+    --border: #1a2535;
+    --accent: #00e5ff;
+    --accent2: #7c3aed;
+    --accent3: #10b981;
+    --danger: #ef4444;
+    --warn: #f59e0b;
+    --text: #e2e8f0;
+    --muted: #4a6080;
+    --glow: rgba(0,229,255,0.15);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── Grid noise texture ── */
+  body::before {
+    content:'';
+    position:fixed; inset:0; z-index:0;
+    background-image:
+      linear-gradient(rgba(0,229,255,0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,229,255,0.02) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events:none;
+  }
+
+  /* ── Ambient glow orbs ── */
+  .orb {
+    position:fixed; border-radius:50%; filter:blur(80px); pointer-events:none; z-index:0;
+  }
+  .orb-1 { width:500px; height:500px; background:rgba(0,229,255,0.05); top:-100px; right:-100px; }
+  .orb-2 { width:400px; height:400px; background:rgba(124,58,237,0.06); bottom:-50px; left:-100px; }
+
+  /* ── Layout ── */
+  .shell { position:relative; z-index:1; display:flex; flex-direction:column; min-height:100vh; }
+
+  /* ── Header ── */
+  header {
+    display:flex; align-items:center; justify-content:space-between;
+    padding:20px 40px;
+    border-bottom:1px solid var(--border);
+    background:rgba(4,6,9,0.8);
+    backdrop-filter:blur(16px);
+    position:sticky; top:0; z-index:100;
+  }
+  .logo {
+    display:flex; align-items:center; gap:12px;
+  }
+  .logo-icon {
+    width:36px; height:36px; border-radius:8px;
+    background:linear-gradient(135deg, var(--accent), var(--accent2));
+    display:flex; align-items:center; justify-content:center;
+    font-size:18px;
+    box-shadow: 0 0 20px rgba(0,229,255,0.3);
+  }
+  .logo-name {
+    font-size:22px; font-weight:800; letter-spacing:0.05em;
+    background:linear-gradient(90deg, var(--accent), #a78bfa);
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  }
+  .logo-tag {
+    font-family:'JetBrains Mono', monospace;
+    font-size:10px; color:var(--muted); letter-spacing:0.1em;
+    margin-top:2px;
+  }
+  .status-pill {
+    display:flex; align-items:center; gap:8px;
+    background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.25);
+    padding:6px 14px; border-radius:999px;
+    font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--accent3);
+  }
+  .status-dot { width:6px; height:6px; border-radius:50%; background:var(--accent3); animation:pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  /* ── Main ── */
+  main { flex:1; padding:40px; max-width:1200px; margin:0 auto; width:100%; }
+
+  /* ── Hero ── */
+  .hero { text-align:center; padding:60px 0 50px; }
+  .hero-badge {
+    display:inline-flex; align-items:center; gap:8px;
+    background:rgba(0,229,255,0.08); border:1px solid rgba(0,229,255,0.2);
+    padding:6px 16px; border-radius:999px; margin-bottom:24px;
+    font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--accent);
+    letter-spacing:0.1em; animation: fadeUp 0.6s ease both;
+  }
+  .hero h1 {
+    font-size:clamp(36px, 5vw, 64px); font-weight:800; line-height:1.05;
+    letter-spacing:-0.02em; margin-bottom:16px;
+    animation: fadeUp 0.6s 0.1s ease both;
+  }
+  .hero h1 span {
+    background:linear-gradient(135deg, var(--accent) 0%, #a78bfa 50%, var(--accent3) 100%);
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  }
+  .hero p {
+    font-size:16px; color:var(--muted); max-width:520px; margin:0 auto 40px;
+    line-height:1.7; animation: fadeUp 0.6s 0.2s ease both;
+  }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:none} }
+
+  /* ── Stats bar ── */
+  .stats-bar {
+    display:grid; grid-template-columns:repeat(4,1fr); gap:1px;
+    background:var(--border); border:1px solid var(--border); border-radius:12px;
+    overflow:hidden; margin-bottom:48px;
+    animation: fadeUp 0.6s 0.3s ease both;
+  }
+  .stat {
+    background:var(--surface); padding:20px 24px; text-align:center;
+  }
+  .stat-val {
+    font-size:28px; font-weight:800; font-family:'JetBrains Mono', monospace;
+    background:linear-gradient(135deg, var(--accent), #a78bfa);
+    -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  }
+  .stat-label { font-size:11px; color:var(--muted); margin-top:4px; letter-spacing:0.05em; }
+
+  /* ── Tabs ── */
+  .tabs {
+    display:flex; gap:4px; margin-bottom:24px;
+    background:var(--surface); border:1px solid var(--border);
+    border-radius:10px; padding:4px; width:fit-content;
+  }
+  .tab {
+    padding:8px 20px; border-radius:7px; font-size:13px; font-weight:600;
+    cursor:pointer; border:none; background:transparent; color:var(--muted);
+    transition:all 0.2s; letter-spacing:0.02em;
+  }
+  .tab.active {
+    background:linear-gradient(135deg, var(--accent2), #4f46e5);
+    color:#fff; box-shadow:0 0 20px rgba(124,58,237,0.3);
+  }
+  .tab:hover:not(.active) { color:var(--text); background:var(--surface2); }
+
+  /* ── Demo Panels ── */
+  .panel { display:none; animation: fadeUp 0.3s ease both; }
+  .panel.active { display:block; }
+
+  .demo-grid { display:grid; grid-template-columns:1fr 1fr; gap:24px; }
+
+  .card {
+    background:var(--surface); border:1px solid var(--border); border-radius:14px;
+    overflow:hidden;
+  }
+  .card-header {
+    padding:18px 22px; border-bottom:1px solid var(--border);
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .card-title { font-size:13px; font-weight:700; letter-spacing:0.05em; color:var(--muted); text-transform:uppercase; }
+  .card-body { padding:22px; }
+
+  /* ── Upload zone ── */
+  .upload-zone {
+    border:2px dashed var(--border); border-radius:10px; padding:40px 24px;
+    text-align:center; cursor:pointer; transition:all 0.3s;
+    position:relative; overflow:hidden;
+  }
+  .upload-zone:hover, .upload-zone.drag {
+    border-color:var(--accent); background:rgba(0,229,255,0.04);
+    box-shadow:0 0 30px rgba(0,229,255,0.08) inset;
+  }
+  .upload-icon { font-size:36px; margin-bottom:12px; display:block; }
+  .upload-text { font-size:14px; color:var(--muted); }
+  .upload-text strong { color:var(--accent); }
+  .upload-sub { font-size:11px; color:var(--muted); margin-top:6px; font-family:'JetBrains Mono',monospace; }
+  input[type=file] { position:absolute; inset:0; opacity:0; cursor:pointer; }
+
+  /* ── Preview image ── */
+  .preview-wrap { display:none; margin-top:16px; border-radius:8px; overflow:hidden; border:1px solid var(--border); }
+  .preview-wrap img { width:100%; display:block; max-height:200px; object-fit:cover; }
+
+  /* ── Analyze button ── */
+  .btn {
+    width:100%; padding:13px; border-radius:9px; border:none; cursor:pointer;
+    font-family:'Syne',sans-serif; font-size:14px; font-weight:700;
+    letter-spacing:0.05em; margin-top:14px; transition:all 0.2s;
+  }
+  .btn-primary {
+    background:linear-gradient(135deg, var(--accent2), #4f46e5);
+    color:#fff; box-shadow:0 4px 20px rgba(124,58,237,0.3);
+  }
+  .btn-primary:hover { transform:translateY(-1px); box-shadow:0 6px 28px rgba(124,58,237,0.45); }
+  .btn-primary:active { transform:none; }
+  .btn-primary:disabled { opacity:0.5; cursor:not-allowed; transform:none; }
+
+  /* ── Result card ── */
+  .result-box {
+    background:var(--surface2); border:1px solid var(--border); border-radius:10px;
+    padding:22px; display:none;
+  }
+  .result-box.show { display:block; animation:fadeUp 0.4s ease both; }
+
+  .result-label {
+    font-size:11px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase;
+    color:var(--muted); margin-bottom:8px;
+  }
+  .result-verdict {
+    font-size:22px; font-weight:800; margin-bottom:18px;
+  }
+  .verdict-fake { color:var(--danger); }
+  .verdict-real { color:var(--accent3); }
+  .verdict-uncertain { color:var(--warn); }
+
+  /* ── Confidence meter ── */
+  .conf-wrap { margin-bottom:18px; }
+  .conf-header { display:flex; justify-content:space-between; margin-bottom:8px; }
+  .conf-title { font-size:12px; color:var(--muted); font-family:'JetBrains Mono',monospace; }
+  .conf-val { font-size:14px; font-weight:700; font-family:'JetBrains Mono',monospace; }
+  .conf-bar { height:8px; background:var(--border); border-radius:99px; overflow:hidden; }
+  .conf-fill {
+    height:100%; border-radius:99px;
+    background:linear-gradient(90deg, var(--accent2), var(--accent));
+    transition:width 1s cubic-bezier(0.34,1.56,0.64,1);
+    box-shadow:0 0 10px rgba(0,229,255,0.4);
+  }
+
+  /* ── Breakdown bars ── */
+  .breakdown { display:flex; flex-direction:column; gap:10px; }
+  .bk-row { display:flex; align-items:center; gap:10px; }
+  .bk-label { font-size:11px; color:var(--muted); width:90px; flex-shrink:0; font-family:'JetBrains Mono',monospace; }
+  .bk-track { flex:1; height:6px; background:var(--border); border-radius:99px; overflow:hidden; }
+  .bk-fill { height:100%; border-radius:99px; transition:width 1s ease; }
+  .bk-fill.fake { background:var(--danger); }
+  .bk-fill.real { background:var(--accent3); }
+  .bk-pct { font-size:11px; font-family:'JetBrains Mono',monospace; color:var(--muted); width:42px; text-align:right; }
+
+  /* ── Text area ── */
+  .headline-input {
+    width:100%; background:var(--surface2); border:1px solid var(--border);
+    border-radius:10px; padding:14px 16px; color:var(--text);
+    font-family:'Syne',sans-serif; font-size:14px; resize:vertical;
+    min-height:100px; outline:none; transition:border-color 0.2s;
+  }
+  .headline-input:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(0,229,255,0.08); }
+  .headline-input::placeholder { color:var(--muted); }
+
+  /* ── Sources list ── */
+  .sources { display:flex; flex-direction:column; gap:8px; margin-top:14px; }
+  .source-item {
+    background:var(--surface); border:1px solid var(--border); border-radius:8px;
+    padding:10px 14px; display:flex; align-items:center; gap:12px;
+  }
+  .source-score {
+    font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:700;
+    min-width:40px; text-align:center; padding:3px 8px; border-radius:5px;
+  }
+  .score-high { background:rgba(16,185,129,0.15); color:var(--accent3); }
+  .score-mid  { background:rgba(245,158,11,0.15); color:var(--warn); }
+  .score-low  { background:rgba(239,68,68,0.15); color:var(--danger); }
+  .source-title { font-size:12px; color:var(--muted); flex:1; line-height:1.4; }
+
+  /* ── API preview ── */
+  .api-block {
+    background:#020408; border:1px solid var(--border); border-radius:10px;
+    padding:20px; font-family:'JetBrains Mono',monospace; font-size:12px;
+    line-height:1.7; overflow-x:auto;
+  }
+  .api-block .method { color:#f59e0b; }
+  .api-block .path   { color:var(--accent); }
+  .api-block .key    { color:#a78bfa; }
+  .api-block .val    { color:var(--accent3); }
+  .api-block .str    { color:#fbbf24; }
+  .api-block .num    { color:#34d399; }
+  .api-block .comment{ color:#374151; }
+
+  /* ── API endpoint cards ── */
+  .endpoint-list { display:flex; flex-direction:column; gap:12px; }
+  .endpoint {
+    background:var(--surface2); border:1px solid var(--border); border-radius:10px;
+    padding:16px 20px; display:flex; align-items:flex-start; gap:14px;
+  }
+  .ep-method {
+    font-family:'JetBrains Mono',monospace; font-size:10px; font-weight:700;
+    background:rgba(0,229,255,0.12); color:var(--accent); padding:4px 10px;
+    border-radius:5px; letter-spacing:0.05em; flex-shrink:0; margin-top:2px;
+  }
+  .ep-path { font-family:'JetBrains Mono',monospace; font-size:14px; font-weight:500; color:var(--text); }
+  .ep-desc { font-size:12px; color:var(--muted); margin-top:4px; }
+
+  /* ── Architecture diagram ── */
+  .arch {
+    display:grid; grid-template-columns:repeat(3,1fr); gap:16px;
+    margin-top:8px;
+  }
+  .arch-box {
+    background:var(--surface2); border:1px solid var(--border); border-radius:10px;
+    padding:16px; text-align:center;
+  }
+  .arch-icon { font-size:28px; margin-bottom:8px; }
+  .arch-name { font-size:12px; font-weight:700; color:var(--text); margin-bottom:4px; }
+  .arch-file { font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--muted); }
+
+  /* ── Loading spinner ── */
+  .spinner {
+    display:none; width:18px; height:18px; border:2px solid rgba(255,255,255,0.2);
+    border-top-color:#fff; border-radius:50%; animation:spin 0.7s linear infinite;
+    margin:0 auto;
+  }
+  @keyframes spin { to { transform:rotate(360deg) } }
+  .btn.loading .btn-label { display:none; }
+  .btn.loading .spinner { display:block; }
+
+  /* ── Footer ── */
+  footer {
+    border-top:1px solid var(--border); padding:20px 40px;
+    display:flex; align-items:center; justify-content:space-between;
+    font-size:12px; color:var(--muted); font-family:'JetBrains Mono',monospace;
+  }
+  .footer-links { display:flex; gap:24px; }
+  .footer-links a { color:var(--muted); text-decoration:none; }
+  .footer-links a:hover { color:var(--accent); }
+
+  /* ── Responsive ── */
+  @media(max-width:768px) {
+    header { padding:16px 20px; }
+    main { padding:24px 20px; }
+    .demo-grid { grid-template-columns:1fr; }
+    .stats-bar { grid-template-columns:repeat(2,1fr); }
+    .arch { grid-template-columns:1fr 1fr; }
+  }
+
+  /* ════════════════════════════════════════
+     AUTH MODAL
+  ════════════════════════════════════════ */
+  .modal-overlay {
+    position:fixed; inset:0; z-index:1000;
+    background:rgba(4,6,9,0.85); backdrop-filter:blur(12px);
+    display:flex; align-items:center; justify-content:center;
+    animation:fadeIn 0.2s ease;
+  }
+  .modal-overlay.hidden { display:none; }
+  @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
+  .auth-modal {
+    background:var(--surface); border:1px solid var(--border); border-radius:18px;
+    padding:40px; width:100%; max-width:420px;
+    box-shadow:0 30px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(0,229,255,0.06);
+    animation:slideUp 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  }
+  @keyframes slideUp { from{opacity:0;transform:translateY(30px)} to{opacity:1;transform:none} }
+
+  .auth-logo { text-align:center; margin-bottom:28px; }
+  .auth-logo .logo-icon-big {
+    width:52px; height:52px; border-radius:14px;
+    background:linear-gradient(135deg,var(--accent),var(--accent2));
+    display:inline-flex; align-items:center; justify-content:center;
+    font-size:26px; margin-bottom:12px;
+    box-shadow:0 0 30px rgba(0,229,255,0.3);
+  }
+  .auth-logo h2 { font-size:22px; font-weight:800; color:var(--text); }
+  .auth-logo p  { font-size:13px; color:var(--muted); margin-top:4px; }
+
+  .auth-tabs-row {
+    display:flex; gap:4px; background:var(--surface2); border:1px solid var(--border);
+    border-radius:9px; padding:4px; margin-bottom:24px;
+  }
+  .auth-tab {
+    flex:1; padding:8px; border-radius:6px; border:none; cursor:pointer;
+    font-family:'Syne',sans-serif; font-size:13px; font-weight:700;
+    background:transparent; color:var(--muted); transition:all 0.2s;
+  }
+  .auth-tab.active {
+    background:linear-gradient(135deg,var(--accent2),#4f46e5); color:#fff;
+    box-shadow:0 0 16px rgba(124,58,237,0.3);
+  }
+
+  .auth-form { display:flex; flex-direction:column; gap:14px; }
+  .auth-form.hidden { display:none; }
+
+  .input-group { display:flex; flex-direction:column; gap:6px; }
+  .input-label { font-size:12px; font-weight:700; color:var(--muted); letter-spacing:0.05em; }
+  .input-field {
+    background:var(--surface2); border:1px solid var(--border); border-radius:9px;
+    padding:11px 14px; color:var(--text); font-family:'Syne',sans-serif; font-size:14px;
+    outline:none; transition:border-color 0.2s;
+  }
+  .input-field:focus { border-color:var(--accent); box-shadow:0 0 0 3px rgba(0,229,255,0.08); }
+  .input-field::placeholder { color:var(--muted); }
+
+  .auth-error {
+    background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.3);
+    color:var(--danger); border-radius:8px; padding:10px 14px; font-size:12px;
+    display:none;
+  }
+  .auth-error.show { display:block; }
+
+  .auth-submit {
+    padding:13px; border-radius:9px; border:none; cursor:pointer;
+    font-family:'Syne',sans-serif; font-size:14px; font-weight:700;
+    background:linear-gradient(135deg,var(--accent2),#4f46e5); color:#fff;
+    box-shadow:0 4px 20px rgba(124,58,237,0.3); transition:all 0.2s;
+    margin-top:4px;
+  }
+  .auth-submit:hover { transform:translateY(-1px); box-shadow:0 6px 28px rgba(124,58,237,0.45); }
+  .auth-submit:disabled { opacity:0.5; cursor:not-allowed; transform:none; }
+
+  .auth-divider {
+    text-align:center; font-size:11px; color:var(--muted);
+    margin-top:16px; font-family:'JetBrains Mono',monospace;
+  }
+  .auth-skip {
+    background:none; border:none; color:var(--muted); font-size:11px;
+    cursor:pointer; text-decoration:underline; font-family:'Syne',sans-serif;
+  }
+  .auth-skip:hover { color:var(--accent); }
+
+  /* ════════════════════════════════════════
+     HEADER AUTH BUTTONS
+  ════════════════════════════════════════ */
+  .header-auth { display:flex; align-items:center; gap:10px; }
+  .btn-login {
+    padding:7px 18px; border-radius:8px; border:1px solid var(--border);
+    background:transparent; color:var(--text); font-family:'Syne',sans-serif;
+    font-size:13px; font-weight:600; cursor:pointer; transition:all 0.2s;
+  }
+  .btn-login:hover { border-color:var(--accent); color:var(--accent); }
+  .btn-signup {
+    padding:7px 18px; border-radius:8px; border:none;
+    background:linear-gradient(135deg,var(--accent2),#4f46e5);
+    color:#fff; font-family:'Syne',sans-serif; font-size:13px; font-weight:700;
+    cursor:pointer; box-shadow:0 0 14px rgba(124,58,237,0.3); transition:all 0.2s;
+  }
+  .btn-signup:hover { box-shadow:0 0 22px rgba(124,58,237,0.5); }
+
+  /* User avatar pill when logged in */
+  .user-pill {
+    display:flex; align-items:center; gap:8px;
+    background:var(--surface2); border:1px solid var(--border);
+    border-radius:999px; padding:5px 14px 5px 8px; cursor:pointer;
+    position:relative;
+  }
+  .user-avatar {
+    width:28px; height:28px; border-radius:50%;
+    background:linear-gradient(135deg,var(--accent),var(--accent2));
+    display:flex; align-items:center; justify-content:center;
+    font-size:13px; font-weight:800; color:#fff; flex-shrink:0;
+  }
+  .user-name { font-size:13px; font-weight:600; color:var(--text); }
+  .user-dropdown {
+    position:absolute; top:calc(100% + 8px); right:0; z-index:200;
+    background:var(--surface); border:1px solid var(--border); border-radius:10px;
+    padding:6px; min-width:160px; box-shadow:0 12px 40px rgba(0,0,0,0.4);
+    display:none;
+  }
+  .user-pill:hover .user-dropdown, .user-pill.open .user-dropdown { display:block; }
+  .dd-item {
+    display:block; width:100%; padding:9px 14px; border:none; background:none;
+    color:var(--muted); font-family:'Syne',sans-serif; font-size:13px;
+    text-align:left; cursor:pointer; border-radius:7px; transition:all 0.15s;
+  }
+  .dd-item:hover { background:var(--surface2); color:var(--text); }
+  .dd-item.danger:hover { background:rgba(239,68,68,0.1); color:var(--danger); }
+
+  /* ════════════════════════════════════════
+     HISTORY SIDEBAR
+  ════════════════════════════════════════ */
+  .app-layout {
+    display:flex; flex:1; overflow:hidden;
+  }
+  .sidebar {
+    width:260px; flex-shrink:0; border-right:1px solid var(--border);
+    background:var(--surface); display:flex; flex-direction:column;
+    overflow:hidden; transition:width 0.3s ease;
+  }
+  .sidebar.collapsed { width:0; }
+  .sidebar-header {
+    padding:16px 18px; border-bottom:1px solid var(--border);
+    display:flex; align-items:center; justify-content:space-between; flex-shrink:0;
+  }
+  .sidebar-title { font-size:12px; font-weight:700; color:var(--muted); letter-spacing:0.08em; text-transform:uppercase; }
+  .sidebar-clear {
+    font-size:10px; padding:3px 8px; border-radius:5px; border:1px solid var(--border);
+    background:transparent; color:var(--muted); cursor:pointer; font-family:'Syne',sans-serif;
+  }
+  .sidebar-clear:hover { color:var(--danger); border-color:rgba(239,68,68,0.4); }
+  .sidebar-body { flex:1; overflow-y:auto; padding:8px; }
+  .sidebar-body::-webkit-scrollbar { width:4px; }
+  .sidebar-body::-webkit-scrollbar-track { background:transparent; }
+  .sidebar-body::-webkit-scrollbar-thumb { background:var(--border); border-radius:99px; }
+
+  .history-empty {
+    padding:40px 16px; text-align:center; color:var(--muted); font-size:12px; line-height:1.7;
+  }
+  .history-login-prompt {
+    padding:24px 16px; text-align:center;
+  }
+  .history-login-prompt p { font-size:12px; color:var(--muted); margin-bottom:12px; line-height:1.6; }
+  .history-login-btn {
+    padding:7px 18px; border-radius:8px; border:none;
+    background:linear-gradient(135deg,var(--accent2),#4f46e5);
+    color:#fff; font-family:'Syne',sans-serif; font-size:12px; font-weight:700;
+    cursor:pointer; width:100%;
+  }
+
+  .history-item {
+    padding:10px 12px; border-radius:8px; border:1px solid transparent;
+    cursor:pointer; transition:all 0.15s; margin-bottom:4px; position:relative;
+  }
+  .history-item:hover { background:var(--surface2); border-color:var(--border); }
+  .hi-type {
+    font-size:10px; font-family:'JetBrains Mono',monospace; font-weight:700;
+    letter-spacing:0.06em; text-transform:uppercase; margin-bottom:4px;
+  }
+  .hi-type.image    { color:var(--accent); }
+  .hi-type.video    { color:#f472b6; }
+  .hi-type.text     { color:var(--warn); }
+  .hi-type.headline { color:var(--accent3); }
+  .hi-name  { font-size:12px; color:var(--text); font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .hi-pred  { font-size:11px; color:var(--muted); margin-top:2px; }
+  .hi-score { font-family:'JetBrains Mono',monospace; font-size:11px; font-weight:700; }
+  .hi-score.fake { color:var(--danger); }
+  .hi-score.real { color:var(--accent3); }
+  .hi-score.uncertain { color:var(--warn); }
+  .hi-time  { font-size:10px; color:var(--muted); margin-top:4px; font-family:'JetBrains Mono',monospace; }
+  .hi-delete {
+    position:absolute; top:8px; right:8px; opacity:0;
+    background:none; border:none; color:var(--muted); cursor:pointer; font-size:14px;
+    transition:opacity 0.15s;
+  }
+  .history-item:hover .hi-delete { opacity:1; }
+  .hi-delete:hover { color:var(--danger); }
+
+  /* Sidebar toggle button (visible on narrow screens) */
+  .sidebar-toggle {
+    display:none; padding:6px 10px; border:1px solid var(--border); border-radius:7px;
+    background:transparent; color:var(--muted); cursor:pointer; font-size:16px;
+  }
+  @media(max-width:900px) {
+    .sidebar-toggle { display:block; }
+    .sidebar { position:fixed; left:0; top:60px; bottom:0; z-index:50; }
+  }
+</style>
+</head>
+<body>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
+
+<div class="shell">
+<!-- ── Header ── -->
+<header>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <button class="sidebar-toggle" onclick="toggleSidebar()" title="Toggle history">☰</button>
+    <div class="logo">
+      <div class="logo-icon">🔍</div>
+      <div>
+        <div class="logo-name">AuthenX</div>
+        <div class="logo-tag">AI CONTENT DETECTION PLATFORM</div>
+      </div>
+    </div>
+  </div>
+  <div class="header-auth" id="header-auth">
+    <!-- injected by JS: login/signup buttons OR user pill -->
+  </div>
+</header>
+
+<!-- ── App layout: sidebar + main ── -->
+<div class="app-layout">
+
+  <!-- History Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <span class="sidebar-title">Recent History</span>
+      <button class="sidebar-clear" onclick="clearHistory()">Clear all</button>
+    </div>
+    <div class="sidebar-body" id="sidebar-body">
+      <div class="history-login-prompt" id="history-login-prompt">
+        <p>Sign in to save and view your detection history.</p>
+        <button class="history-login-btn" onclick="openAuth('login')">Sign In</button>
+      </div>
+      <div id="history-list" style="display:none;"></div>
+      <div class="history-empty" id="history-empty" style="display:none;">
+        No detections yet.<br>Run an analysis to see results here.
+      </div>
+    </div>
+  </aside>
+
+<!-- ── Main ── -->
+<main>
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-badge">⚡ PRODUCTION READY · FLASK + PYTORCH + BERT</div>
+    <h1>Detect What's <span>Real</span></h1>
+    <p>AI-powered detection of deepfake images, manipulated videos, and misinformation headlines — all with calibrated confidence scores.</p>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-bar">
+    <div class="stat">
+      <div class="stat-val">5</div>
+      <div class="stat-label">Detection Modules</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val">EfficientNet</div>
+      <div class="stat-label">CNN Backbone</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val">GPT-2 + BERT</div>
+      <div class="stat-label">NLP Models</div>
+    </div>
+    <div class="stat">
+      <div class="stat-val">0–100%</div>
+      <div class="stat-label">Confidence Score</div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('image',this)">🖼 Image</button>
+    <button class="tab" onclick="switchTab('video',this)">🎬 Video</button>
+    <button class="tab" onclick="switchTab('headline',this)">📰 Headline</button>
+    <button class="tab" onclick="switchTab('textdet',this)">📝 Text / Doc</button>
+    <button class="tab" onclick="switchTab('api',this)">⚡ API</button>
+    <button class="tab" onclick="switchTab('arch',this)">🏗 Architecture</button>
+  </div>
+
+  <!-- ── IMAGE PANEL ── -->
+  <div class="panel active" id="panel-image">
+    <div class="demo-grid">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">POST /detect/image</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent)">multipart/form-data</span>
+        </div>
+        <div class="card-body">
+          <div class="upload-zone" id="img-zone" ondragover="dragOver(event,'img-zone')" ondragleave="dragLeave('img-zone')" ondrop="dropFile(event,'img-input','img-preview-wrap','img-preview')">
+            <span class="upload-icon">🖼</span>
+            <div class="upload-text"><strong>Click or drag</strong> an image here</div>
+            <div class="upload-sub">JPG · PNG · WEBP · BMP</div>
+            <input type="file" id="img-input" accept="image/*" onchange="previewImage(this,'img-preview-wrap','img-preview')"/>
+          </div>
+          <div class="preview-wrap" id="img-preview-wrap">
+            <img id="img-preview" src="" alt="preview"/>
+          </div>
+          <button class="btn btn-primary" id="img-btn" onclick="analyzeImage()">
+            <span class="btn-label">🔍 Analyze Image</span>
+            <div class="spinner"></div>
+          </button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Detection Result</span>
+        </div>
+        <div class="card-body">
+          <div class="result-box" id="img-result">
+            <div class="result-label">Prediction</div>
+            <div class="result-verdict" id="img-verdict"></div>
+            <div class="conf-wrap">
+              <div class="conf-header">
+                <span class="conf-title">Confidence Score</span>
+                <span class="conf-val" id="img-conf-val"></span>
+              </div>
+              <div class="conf-bar"><div class="conf-fill" id="img-conf-fill" style="width:0%"></div></div>
+            </div>
+            <div class="breakdown">
+              <div class="bk-row">
+                <span class="bk-label">AI Generated</span>
+                <div class="bk-track"><div class="bk-fill fake" id="img-fake-bar" style="width:0%"></div></div>
+                <span class="bk-pct" id="img-fake-pct"></span>
+              </div>
+              <div class="bk-row">
+                <span class="bk-label">Authentic</span>
+                <div class="bk-track"><div class="bk-fill real" id="img-real-bar" style="width:0%"></div></div>
+                <span class="bk-pct" id="img-real-pct"></span>
+              </div>
+            </div>
+            <div style="margin-top:16px;font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);border-top:1px solid var(--border);padding-top:12px;" id="img-raw"></div>
+          </div>
+          <div id="img-placeholder" style="text-align:center;padding:60px 20px;color:var(--muted);font-size:13px;">
+            Upload an image to see the detection result here.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── VIDEO PANEL ── -->
+  <div class="panel" id="panel-video">
+    <div class="demo-grid">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">POST /detect/video</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent)">multipart/form-data</span>
+        </div>
+        <div class="card-body">
+          <div class="upload-zone" id="vid-zone">
+            <span class="upload-icon">🎬</span>
+            <div class="upload-text"><strong>Click or drag</strong> a video here</div>
+            <div class="upload-sub">MP4 · AVI · MOV · MKV · WEBM</div>
+            <input type="file" id="vid-input" accept="video/*" onchange="previewVideo(this)"/>
+          </div>
+          <div id="vid-info" style="display:none;margin-top:12px;padding:12px;background:var(--surface2);border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);"></div>
+          <button class="btn btn-primary" id="vid-btn" onclick="analyzeVideo()">
+            <span class="btn-label">🎞 Analyze Video</span>
+            <div class="spinner"></div>
+          </button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Detection Result</span>
+        </div>
+        <div class="card-body">
+          <div class="result-box" id="vid-result">
+            <div class="result-label">Prediction</div>
+            <div class="result-verdict" id="vid-verdict"></div>
+            <div class="conf-wrap">
+              <div class="conf-header">
+                <span class="conf-title">Confidence Score</span>
+                <span class="conf-val" id="vid-conf-val"></span>
+              </div>
+              <div class="conf-bar"><div class="conf-fill" id="vid-conf-fill" style="width:0%"></div></div>
+            </div>
+            <div style="margin-top:14px;" id="vid-frames-info"></div>
+          </div>
+          <div id="vid-placeholder" style="text-align:center;padding:60px 20px;color:var(--muted);font-size:13px;">
+            Upload a video to see frame-by-frame analysis here.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── HEADLINE PANEL ── -->
+  <div class="panel" id="panel-headline">
+    <div class="demo-grid">
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">POST /verify/headline</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent)">application/json</span>
+        </div>
+        <div class="card-body">
+          <textarea class="headline-input" id="headline-input" placeholder="Paste a news headline here to verify…&#10;&#10;e.g. &quot;Scientists discover new exoplanet in habitable zone&quot;"></textarea>
+          <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;" id="example-chips"></div>
+          <button class="btn btn-primary" id="hl-btn" style="margin-top:14px" onclick="verifyHeadline()">
+            <span class="btn-label">🔎 Verify Headline</span>
+            <div class="spinner"></div>
+          </button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Verification Result</span>
+        </div>
+        <div class="card-body" style="overflow-y:auto;max-height:420px;">
+          <div class="result-box" id="hl-result">
+            <div class="result-label">Prediction</div>
+            <div class="result-verdict" id="hl-verdict"></div>
+            <div class="conf-wrap">
+              <div class="conf-header">
+                <span class="conf-title">Authenticity Score</span>
+                <span class="conf-val" id="hl-conf-val"></span>
+              </div>
+              <div class="conf-bar"><div class="conf-fill" id="hl-conf-fill" style="width:0%"></div></div>
+            </div>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:10px;font-family:'JetBrains Mono',monospace;" id="hl-sim"></div>
+            <div class="result-label">Sources Checked</div>
+            <div class="sources" id="hl-sources"></div>
+          </div>
+          <div id="hl-placeholder" style="text-align:center;padding:60px 20px;color:var(--muted);font-size:13px;">
+            Enter a headline to check against web sources.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TEXT / DOCUMENT AI DETECTION PANEL ── -->
+  <div class="panel" id="panel-textdet">
+    <div class="demo-grid">
+
+      <!-- Input card -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">POST /detect/text · /detect/document</span>
+          <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent)">JSON or file upload</span>
+        </div>
+        <div class="card-body">
+
+          <!-- Mode toggle -->
+          <div style="display:flex;gap:4px;margin-bottom:16px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:4px;">
+            <button id="td-mode-text" onclick="tdSwitchMode('text')"
+              style="flex:1;padding:7px;border-radius:6px;border:none;cursor:pointer;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;background:linear-gradient(135deg,var(--accent2),#4f46e5);color:#fff;transition:all 0.2s;">
+              ✏️ Paste Text
+            </button>
+            <button id="td-mode-file" onclick="tdSwitchMode('file')"
+              style="flex:1;padding:7px;border-radius:6px;border:none;cursor:pointer;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;background:transparent;color:var(--muted);transition:all 0.2s;">
+              📂 Upload File
+            </button>
+          </div>
+
+          <!-- Paste text mode -->
+          <div id="td-text-area">
+            <textarea class="headline-input" id="td-text-input" style="min-height:160px;"
+              placeholder="Paste any text here to check if it was written by an AI…&#10;&#10;Minimum 30 words required. Works best with 100+ words.&#10;&#10;Examples: essays, articles, emails, reports, blog posts..."></textarea>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
+              <span id="td-word-count" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);">0 words</span>
+              <button onclick="tdClearText()" style="font-size:11px;padding:3px 10px;border-radius:5px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;">Clear</button>
+            </div>
+            <!-- Quick-fill example buttons -->
+            <div style="display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;">
+              <span style="font-size:11px;color:var(--muted);align-self:center;">Try:</span>
+              <button onclick="tdFillExample('ai')" style="font-size:11px;padding:4px 10px;border-radius:999px;border:1px solid rgba(0,229,255,0.3);background:rgba(0,229,255,0.06);color:var(--accent);cursor:pointer;">AI-style sample</button>
+              <button onclick="tdFillExample('human')" style="font-size:11px;padding:4px 10px;border-radius:999px;border:1px solid rgba(16,185,129,0.3);background:rgba(16,185,129,0.06);color:var(--accent3);cursor:pointer;">Human-style sample</button>
+            </div>
+          </div>
+
+          <!-- Upload file mode (hidden by default) -->
+          <div id="td-file-area" style="display:none;">
+            <div class="upload-zone" id="td-zone"
+              ondragover="dragOver(event,'td-zone')" ondragleave="dragLeave('td-zone')"
+              ondrop="tdDropFile(event)">
+              <span class="upload-icon">📄</span>
+              <div class="upload-text"><strong>Click or drag</strong> a document here</div>
+              <div class="upload-sub">TXT · PDF · DOCX</div>
+              <input type="file" id="td-file-input" accept=".txt,.pdf,.docx" onchange="tdFileChosen(this)"/>
+            </div>
+            <div id="td-file-info" style="display:none;margin-top:12px;padding:12px;background:var(--surface2);border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);line-height:1.8;"></div>
+          </div>
+
+          <button class="btn btn-primary" id="td-btn" onclick="analyzeText()" style="margin-top:16px;">
+            <span class="btn-label">🤖 Detect AI Writing</span>
+            <div class="spinner"></div>
+          </button>
+
+        </div>
+      </div>
+
+      <!-- Result card -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Detection Result</span>
+        </div>
+        <div class="card-body" style="overflow-y:auto;max-height:480px;">
+
+          <div class="result-box" id="td-result">
+            <div class="result-label">Prediction</div>
+            <div class="result-verdict" id="td-verdict"></div>
+
+            <div class="conf-wrap">
+              <div class="conf-header">
+                <span class="conf-title">AI Likelihood Score</span>
+                <span class="conf-val" id="td-conf-val"></span>
+              </div>
+              <div class="conf-bar"><div class="conf-fill" id="td-conf-fill" style="width:0%"></div></div>
+            </div>
+
+            <!-- 3 signal bars -->
+            <div class="result-label" style="margin-top:16px;">Signal Breakdown</div>
+            <div class="breakdown" style="margin-bottom:16px;">
+              <div class="bk-row">
+                <span class="bk-label" style="width:110px;">Perplexity</span>
+                <div class="bk-track"><div class="bk-fill fake" id="td-perp-bar" style="width:0%"></div></div>
+                <span class="bk-pct" id="td-perp-pct"></span>
+              </div>
+              <div class="bk-row">
+                <span class="bk-label" style="width:110px;">Burstiness</span>
+                <div class="bk-track"><div class="bk-fill fake" id="td-burst-bar" style="width:0%"></div></div>
+                <span class="bk-pct" id="td-burst-pct"></span>
+              </div>
+              <div class="bk-row">
+                <span class="bk-label" style="width:110px;">Stylometric</span>
+                <div class="bk-track"><div class="bk-fill fake" id="td-style-bar" style="width:0%"></div></div>
+                <span class="bk-pct" id="td-style-pct"></span>
+              </div>
+            </div>
+
+            <!-- Stats row -->
+            <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap;">
+              <div style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;">
+                <div style="font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;color:var(--accent)" id="td-words">—</div>
+                <div style="font-size:10px;color:var(--muted);margin-top:3px;">WORDS</div>
+              </div>
+              <div style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;">
+                <div style="font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;color:var(--accent)" id="td-chars">—</div>
+                <div style="font-size:10px;color:var(--muted);margin-top:3px;">CHARS</div>
+              </div>
+              <div style="flex:1;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;">
+                <div style="font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;color:var(--accent)" id="td-perplexity">—</div>
+                <div style="font-size:10px;color:var(--muted);margin-top:3px;">PERPLEXITY</div>
+              </div>
+            </div>
+
+            <!-- Excerpt -->
+            <div class="result-label">Analysed Excerpt</div>
+            <div id="td-excerpt" style="font-size:11px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px;font-family:'JetBrains Mono',monospace;line-height:1.6;word-break:break-word;"></div>
+          </div>
+
+          <div id="td-placeholder" style="text-align:center;padding:60px 20px;color:var(--muted);font-size:13px;">
+            Paste text or upload a .txt / .pdf / .docx file to detect AI writing.
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── API PANEL ── -->
+  <div class="panel" id="panel-api">
+    <div class="demo-grid">
+      <div class="card">
+        <div class="card-header"><span class="card-title">API Endpoints</span></div>
+        <div class="card-body">
+          <div class="endpoint-list">
+            <div class="endpoint">
+              <span class="ep-method">POST</span>
+              <div>
+                <div class="ep-path">/detect/image</div>
+                <div class="ep-desc">Detect AI-generated images · multipart/form-data · field: file</div>
+              </div>
+            </div>
+            <div class="endpoint">
+              <span class="ep-method">POST</span>
+              <div>
+                <div class="ep-path">/detect/video</div>
+                <div class="ep-desc">Detect AI-generated videos · multipart/form-data · field: file</div>
+              </div>
+            </div>
+            <div class="endpoint">
+              <span class="ep-method">POST</span>
+              <div>
+                <div class="ep-path">/detect/text</div>
+                <div class="ep-desc">Detect AI-written text · application/json · field: text</div>
+              </div>
+            </div>
+            <div class="endpoint">
+              <span class="ep-method">POST</span>
+              <div>
+                <div class="ep-path">/detect/document</div>
+                <div class="ep-desc">Detect AI-written documents · multipart/form-data · field: file (.txt/.pdf/.docx)</div>
+              </div>
+            </div>
+            <div class="endpoint">
+              <span class="ep-method">POST</span>
+              <div>
+                <div class="ep-path">/verify/headline</div>
+                <div class="ep-desc">Verify news headlines · application/json · field: headline</div>
+              </div>
+            </div>
+            <div class="endpoint">
+              <span class="ep-method">GET</span>
+              <div>
+                <div class="ep-path">/health</div>
+                <div class="ep-desc">Liveness probe · returns service status</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Example Responses</span>
+          <div style="display:flex;gap:6px;">
+            <button onclick="showSample('img-sample')" style="font-size:10px;padding:3px 10px;border-radius:5px;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;">Image</button>
+            <button onclick="showSample('vid-sample')" style="font-size:10px;padding:3px 10px;border-radius:5px;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;">Video</button>
+            <button onclick="showSample('hl-sample')" style="font-size:10px;padding:3px 10px;border-radius:5px;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;">Headline</button>
+            <button onclick="showSample('td-sample')" style="font-size:10px;padding:3px 10px;border-radius:5px;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;">Text</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="api-block" id="img-sample">
+<span class="comment">// POST /detect/image → 200 OK</span>
+{
+  <span class="key">"prediction"</span>: <span class="str">"AI Generated"</span>,
+  <span class="key">"confidence_score"</span>: <span class="num">82.34</span>,
+  <span class="key">"filename"</span>: <span class="str">"photo.jpg"</span>,
+  <span class="key">"raw_probs"</span>: {
+    <span class="key">"authentic"</span>: <span class="num">17.66</span>,
+    <span class="key">"ai_generated"</span>: <span class="num">82.34</span>
+  },
+  <span class="key">"timestamp"</span>: <span class="str">"2025-01-15T10:30:00Z"</span>
+}</div>
+          <div class="api-block" id="vid-sample" style="display:none">
+<span class="comment">// POST /detect/video → 200 OK</span>
+{
+  <span class="key">"prediction"</span>: <span class="str">"Likely AI Generated"</span>,
+  <span class="key">"confidence_score"</span>: <span class="num">76.45</span>,
+  <span class="key">"frames_analyzed"</span>: <span class="num">32</span>,
+  <span class="key">"per_frame_scores"</span>: [
+    { <span class="key">"frame"</span>: <span class="num">1</span>, <span class="key">"score"</span>: <span class="num">80.12</span> },
+    { <span class="key">"frame"</span>: <span class="num">2</span>, <span class="key">"score"</span>: <span class="num">71.34</span> }
+  ],
+  <span class="key">"filename"</span>: <span class="str">"clip.mp4"</span>,
+  <span class="key">"timestamp"</span>: <span class="str">"2025-01-15T10:30:00Z"</span>
+}</div>
+          <div class="api-block" id="hl-sample" style="display:none">
+<span class="comment">// POST /verify/headline → 200 OK</span>
+{
+  <span class="key">"prediction"</span>: <span class="str">"Likely Misinformation"</span>,
+  <span class="key">"confidence_score"</span>: <span class="num">68.2</span>,
+  <span class="key">"avg_similarity"</span>: <span class="num">0.2341</span>,
+  <span class="key">"sources_checked"</span>: [
+    {
+      <span class="key">"title"</span>: <span class="str">"Fact Check: Moon Composition"</span>,
+      <span class="key">"similarity_score"</span>: <span class="num">12.4</span>,
+      <span class="key">"url"</span>: <span class="str">"https://..."</span>
+    }
+  ]
+}</div>
+          <div class="api-block" id="td-sample" style="display:none">
+<span class="comment">// POST /detect/text → 200 OK</span>
+{
+  <span class="key">"prediction"</span>: <span class="str">"AI Generated"</span>,
+  <span class="key">"confidence_score"</span>: <span class="num">78.4</span>,
+  <span class="key">"signals"</span>: {
+    <span class="key">"perplexity_score"</span>: <span class="num">23.4</span>,
+    <span class="key">"perplexity_ai_prob"</span>: <span class="num">88.2</span>,
+    <span class="key">"burstiness_score"</span>: <span class="num">0.18</span>,
+    <span class="key">"burstiness_ai_prob"</span>: <span class="num">82.0</span>,
+    <span class="key">"stylometric_ai_prob"</span>: <span class="num">55.0</span>
+  },
+  <span class="key">"word_count"</span>: <span class="num">542</span>,
+  <span class="key">"char_count"</span>: <span class="num">3201</span>,
+  <span class="key">"excerpt"</span>: <span class="str">"The emergence of large language..."</span>,
+  <span class="key">"timestamp"</span>: <span class="str">"2025-01-15T10:30:00Z"</span>
+}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── ARCHITECTURE PANEL ── -->
+  <div class="panel" id="panel-arch">
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header"><span class="card-title">Module Architecture</span></div>
+      <div class="card-body">
+        <div class="arch">
+          <div class="arch-box">
+            <div class="arch-icon">🧠</div>
+            <div class="arch-name">Image Model</div>
+            <div class="arch-file">models/image_model.py</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.5">EfficientNet-B0<br>Softmax confidence<br>GPU auto-detect</div>
+          </div>
+          <div class="arch-box">
+            <div class="arch-icon">🎞</div>
+            <div class="arch-name">Video Model</div>
+            <div class="arch-file">models/video_model.py</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.5">OpenCV 1fps extract<br>Batch inference<br>Frame averaging</div>
+          </div>
+          <div class="arch-box">
+            <div class="arch-icon">📰</div>
+            <div class="arch-name">Verification</div>
+            <div class="arch-file">services/verification_service.py</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.5">BERT embeddings<br>Cosine similarity<br>DuckDuckGo search</div>
+          </div>
+          <div class="arch-box">
+            <div class="arch-icon">🛡</div>
+            <div class="arch-name">Preprocessing</div>
+            <div class="arch-file">utils/preprocessing.py</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.5">Magic byte check<br>PIL validation<br>Text sanitization</div>
+          </div>
+          <div class="arch-box">
+            <div class="arch-icon">📊</div>
+            <div class="arch-name">Scoring</div>
+            <div class="arch-file">utils/scoring.py</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.5">Softmax probs<br>Cosine → %<br>Frame aggregation</div>
+          </div>
+          <div class="arch-box">
+            <div class="arch-icon">🗄</div>
+            <div class="arch-name">MongoDB</div>
+            <div class="arch-file">app.py + flask-pymongo</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.5">All predictions stored<br>Indexed by type<br>Timestamp ordered</div>
+          </div>
+          <div class="arch-box">
+            <div class="arch-icon">🤖</div>
+            <div class="arch-name">Text Detection</div>
+            <div class="arch-file">models/text_detection_model.py</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.5">GPT-2 perplexity<br>Burstiness score<br>Stylometric features</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><span class="card-title">Data Flow</span></div>
+      <div class="card-body">
+        <div style="font-family:'JetBrains Mono',monospace;font-size:12px;line-height:2.2;color:var(--muted)">
+          <span style="color:var(--accent)">Client</span>
+          &nbsp;→&nbsp; <span style="color:#a78bfa">Flask Route</span>
+          &nbsp;→&nbsp; <span style="color:var(--warn)">File Validation</span>
+          &nbsp;→&nbsp; <span style="color:var(--accent3)">Model Inference</span>
+          &nbsp;→&nbsp; <span style="color:var(--accent)">Confidence Score</span>
+          &nbsp;→&nbsp; <span style="color:#f472b6">MongoDB</span>
+          &nbsp;→&nbsp; <span style="color:var(--accent)">JSON Response</span>
+        </div>
+        <div style="margin-top:16px;padding:14px;background:var(--surface2);border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--muted);line-height:1.8">
+          <span style="color:var(--accent3)">Image path:</span> Upload → magic+PIL check → EfficientNet → softmax → {prediction, confidence}<br>
+          <span style="color:var(--accent3)">Video path:</span> Upload → OpenCV 1fps → batch frames → mean probs → {prediction, confidence, frames}<br>
+          <span style="color:var(--accent3)">Text path:</span>  Headline → sanitize → DDG search → MiniLM encode → cosine sim → {prediction, sources}
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+</div><!-- end app-layout -->
+
+<!-- ════════════════════════════════════════
+     AUTH MODAL
+════════════════════════════════════════ -->
+<div class="modal-overlay hidden" id="auth-overlay" onclick="overlayClick(event)">
+  <div class="auth-modal">
+    <div class="auth-logo">
+      <div class="logo-icon-big">🔍</div>
+      <h2>AuthenX</h2>
+      <p id="auth-modal-sub">Sign in to save your detection history</p>
+    </div>
+
+    <!-- Tab row -->
+    <div class="auth-tabs-row">
+      <button class="auth-tab active" id="tab-login" onclick="switchAuthTab('login')">Sign In</button>
+      <button class="auth-tab" id="tab-signup" onclick="switchAuthTab('signup')">Create Account</button>
+    </div>
+
+    <!-- Error banner -->
+    <div class="auth-error" id="auth-error"></div>
+
+    <!-- LOGIN FORM -->
+    <div class="auth-form" id="form-login">
+      <div class="input-group">
+        <label class="input-label">EMAIL</label>
+        <input class="input-field" type="email" id="li-email" placeholder="you@example.com" autocomplete="email"/>
+      </div>
+      <div class="input-group">
+        <label class="input-label">PASSWORD</label>
+        <input class="input-field" type="password" id="li-password" placeholder="Your password" autocomplete="current-password"/>
+      </div>
+      <button class="auth-submit" id="li-submit" onclick="doLogin()">Sign In</button>
+    </div>
+
+    <!-- SIGNUP FORM -->
+    <div class="auth-form hidden" id="form-signup">
+      <div class="input-group">
+        <label class="input-label">USERNAME</label>
+        <input class="input-field" type="text" id="su-username" placeholder="e.g. alice123" autocomplete="username"/>
+      </div>
+      <div class="input-group">
+        <label class="input-label">EMAIL</label>
+        <input class="input-field" type="email" id="su-email" placeholder="you@example.com" autocomplete="email"/>
+      </div>
+      <div class="input-group">
+        <label class="input-label">PASSWORD</label>
+        <input class="input-field" type="password" id="su-password" placeholder="Min 8 chars, 1 letter, 1 number" autocomplete="new-password"/>
+      </div>
+      <button class="auth-submit" id="su-submit" onclick="doSignup()">Create Account</button>
+    </div>
+
+    <div class="auth-divider">
+      <button class="auth-skip" onclick="closeAuth()">Continue without signing in →</button>
+    </div>
+  </div>
+</div>
+
+</div><!-- end shell -->
+<footer>
+  <div>AuthenX v1.0 · Flask + PyTorch + GPT-2 + sentence-transformers</div>
+  <div class="footer-links">
+    <a href="#">/detect/image</a>
+    <a href="#">/detect/video</a>
+    <a href="#">/detect/text</a>
+    <a href="#">/verify/headline</a>
+    <a href="#">/health</a>
+  </div>
+</footer>
+<script>
+// ── Tab switching ──
+function switchTab(name, el) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  el.classList.add('active');
+}
+
+// ── Drag & drop ──
+function dragOver(e, id) { e.preventDefault(); document.getElementById(id).classList.add('drag'); }
+function dragLeave(id)   { document.getElementById(id).classList.remove('drag'); }
+function dropFile(e, inputId, wrapId, imgId) {
+  e.preventDefault();
+  dragLeave(e.target.closest('.upload-zone')?.id || '');
+  const file = e.dataTransfer.files[0];
+  if (!file) return;
+  const input = document.getElementById(inputId);
+  const dt = new DataTransfer();
+  dt.items.add(file);
+  input.files = dt.files;
+  previewImage(input, wrapId, imgId);
+}
+
+// ── Image preview ──
+function previewImage(input, wrapId, imgId) {
+  const file = input.files[0];
+  if (!file) return;
+  const wrap = document.getElementById(wrapId);
+  const img  = document.getElementById(imgId);
+  const reader = new FileReader();
+  reader.onload = e => { img.src = e.target.result; wrap.style.display = 'block'; };
+  reader.readAsDataURL(file);
+}
+
+// ── Video info ──
+function previewVideo(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const info = document.getElementById('vid-info');
+  info.style.display = 'block';
+  const sizeMB = (file.size / 1024 / 1024).toFixed(2);
+  info.innerHTML = `📁 ${file.name}<br>📦 ${sizeMB} MB · ${file.type || 'video'}`;
+}
+
+// ── Simulated image analysis ──
+function analyzeImage() {
+  const btn = document.getElementById('img-btn');
+  btn.classList.add('loading'); btn.disabled = true;
+
+  setTimeout(() => {
+    btn.classList.remove('loading'); btn.disabled = false;
+
+    const isFake = Math.random() > 0.4;
+    const fakeScore = isFake
+      ? (55 + Math.random() * 40).toFixed(2)
+      : (5  + Math.random() * 35).toFixed(2);
+    const realScore = (100 - parseFloat(fakeScore)).toFixed(2);
+    const confidence = isFake ? fakeScore : realScore;
+    const prediction = isFake ? 'AI Generated' : 'Authentic';
+
+    document.getElementById('img-placeholder').style.display = 'none';
+    const result = document.getElementById('img-result');
+    result.classList.add('show');
+
+    const verdict = document.getElementById('img-verdict');
+    verdict.textContent = prediction;
+    verdict.className = 'result-verdict ' + (isFake ? 'verdict-fake' : 'verdict-real');
+
+    document.getElementById('img-conf-val').textContent = confidence + '%';
+    document.getElementById('img-conf-val').style.color = isFake ? 'var(--danger)' : 'var(--accent3)';
+    setTimeout(() => {
+      document.getElementById('img-conf-fill').style.width = confidence + '%';
+      document.getElementById('img-fake-bar').style.width = fakeScore + '%';
+      document.getElementById('img-real-bar').style.width = realScore + '%';
+    }, 50);
+    document.getElementById('img-fake-pct').textContent = fakeScore + '%';
+    document.getElementById('img-real-pct').textContent = realScore + '%';
+    document.getElementById('img-raw').textContent =
+      `Softmax → [authentic: ${realScore}%, ai_generated: ${fakeScore}%]`;
+  }, 1800);
+}
+
+// ── Simulated video analysis ──
+function analyzeVideo() {
+  const btn = document.getElementById('vid-btn');
+  btn.classList.add('loading'); btn.disabled = true;
+
+  setTimeout(() => {
+    btn.classList.remove('loading'); btn.disabled = false;
+
+    const score = (30 + Math.random() * 60).toFixed(2);
+    const frames = Math.floor(20 + Math.random() * 80);
+    let prediction, cls;
+    if (score >= 75) { prediction = 'Highly Likely AI Generated'; cls = 'verdict-fake'; }
+    else if (score >= 50) { prediction = 'Likely AI Generated'; cls = 'verdict-fake'; }
+    else if (score >= 30) { prediction = 'Uncertain / Possibly AI Generated'; cls = 'verdict-uncertain'; }
+    else { prediction = 'Likely Authentic'; cls = 'verdict-real'; }
+
+    document.getElementById('vid-placeholder').style.display = 'none';
+    const result = document.getElementById('vid-result');
+    result.classList.add('show');
+
+    const verdict = document.getElementById('vid-verdict');
+    verdict.textContent = prediction; verdict.className = 'result-verdict ' + cls;
+    document.getElementById('vid-conf-val').textContent = score + '%';
+    setTimeout(() => { document.getElementById('vid-conf-fill').style.width = score + '%'; }, 50);
+    document.getElementById('vid-frames-info').innerHTML =
+      '<span style="font-family:\'JetBrains Mono\',monospace;font-size:11px;color:var(--muted)">' +
+      'Frames analyzed: <strong style="color:var(--text)">' + frames + '</strong> \u00b7 ' +
+      'Sampled at 1fps \u00b7 Avg fake prob: <strong style="color:var(--text)">' + score + '%</strong></span>';
+  }, 2400);
+}
+
+// ── Example headlines ──
+const examples = [
+  "Scientists discover water on Mars",
+  "Aliens land at White House, President signs treaty",
+  "New COVID-19 variant detected in 12 countries",
+  "Elon Musk buys the moon"
+];
+const chips = document.getElementById('example-chips');
+examples.forEach(h => {
+  const btn = document.createElement('button');
+  btn.textContent = h.length > 30 ? h.slice(0,30)+'…' : h;
+  btn.title = h;
+  btn.style.cssText = 'font-size:11px;padding:4px 10px;border-radius:999px;border:1px solid var(--border);background:var(--surface);color:var(--muted);cursor:pointer;white-space:nowrap;';
+  btn.onclick = () => { document.getElementById('headline-input').value = h; };
+  chips.appendChild(btn);
+});
+
+// ── Simulated headline verification ──
+function verifyHeadline() {
+  const text = document.getElementById('headline-input').value.trim();
+  if (!text) return;
+  const btn = document.getElementById('hl-btn');
+  btn.classList.add('loading'); btn.disabled = true;
+
+  setTimeout(() => {
+    btn.classList.remove('loading'); btn.disabled = false;
+
+    // Rough heuristic for demo: plausible = high score
+    const plausible = /scientists|study|report|researchers|government|officials|data|health|climate/i.test(text);
+    const absurd    = /aliens|moon.*cheese|president.*mars|elon.*moon|zombies/i.test(text);
+
+    let score, prediction, cls;
+    if (absurd)      { score = (5  + Math.random()*20).toFixed(2); prediction = 'Likely Misinformation'; cls = 'verdict-fake'; }
+    else if (plausible){ score = (65 + Math.random()*30).toFixed(2); prediction = 'Likely Real News'; cls = 'verdict-real'; }
+    else             { score = (28 + Math.random()*32).toFixed(2); prediction = 'Unverified / Inconclusive'; cls = 'verdict-uncertain'; }
+
+    const simScore = (score / 100 * 0.8 + Math.random() * 0.1).toFixed(4);
+
+    document.getElementById('hl-placeholder').style.display = 'none';
+    const result = document.getElementById('hl-result');
+    result.classList.add('show');
+
+    const verdict = document.getElementById('hl-verdict');
+    verdict.textContent = prediction; verdict.className = 'result-verdict ' + cls;
+    document.getElementById('hl-conf-val').textContent = score + '%';
+    setTimeout(() => { document.getElementById('hl-conf-fill').style.width = score + '%'; }, 50);
+    document.getElementById('hl-sim').textContent = `avg_similarity: ${simScore} · sources_checked: 5`;
+
+    const fakeSources = [
+      { t:'Reuters: Latest findings on the topic', s: (Math.random()*40+50).toFixed(1) },
+      { t:'BBC News: Analysis and expert opinions', s: (Math.random()*30+40).toFixed(1) },
+      { t:'Associated Press: Breaking coverage', s: (Math.random()*25+35).toFixed(1) },
+      { t:'The Guardian: Fact check report', s: (Math.random()*20+20).toFixed(1) },
+      { t:'Snopes: Verification findings', s: (Math.random()*20+10).toFixed(1) },
+    ];
+    const sourcesEl = document.getElementById('hl-sources');
+    sourcesEl.innerHTML = '';
+    fakeSources.forEach(src => {
+      const s = parseFloat(src.s);
+      const cls2 = s >= 60 ? 'score-high' : s >= 35 ? 'score-mid' : 'score-low';
+      sourcesEl.innerHTML += `
+        <div class="source-item">
+          <span class="source-score ${cls2}">${src.s}%</span>
+          <span class="source-title">${src.t}</span>
+        </div>`;
+    });
+  }, 2000);
+}
+
+// ── API sample switcher ──
+function showSample(id) {
+  ['img-sample','vid-sample','hl-sample','td-sample'].forEach(s => {
+    document.getElementById(s).style.display = s === id ? 'block' : 'none';
+  });
+}
+function tdSwitchMode(mode) {
+  const textArea = document.getElementById('td-text-area');
+  const fileArea = document.getElementById('td-file-area');
+  const btnText  = document.getElementById('td-mode-text');
+  const btnFile  = document.getElementById('td-mode-file');
+  const activeStyle = 'background:linear-gradient(135deg,var(--accent2),#4f46e5);color:#fff;';
+  const inactiveStyle = 'background:transparent;color:var(--muted);';
+  if (mode === 'text') {
+    textArea.style.display = 'block'; fileArea.style.display = 'none';
+    btnText.style.cssText += activeStyle; btnFile.style.cssText += inactiveStyle;
+  } else {
+    textArea.style.display = 'none'; fileArea.style.display = 'block';
+    btnFile.style.cssText += activeStyle; btnText.style.cssText += inactiveStyle;
+  }
+}
+
+// ── Text Detection: word count live update ──
+document.getElementById('td-text-input').addEventListener('input', function() {
+  const words = this.value.trim().split(/\s+/).filter(Boolean).length;
+  const wc = document.getElementById('td-word-count');
+  wc.textContent = words + ' words';
+  wc.style.color = words < 30 ? 'var(--warn)' : 'var(--accent3)';
+});
+
+// ── Text Detection: clear ──
+function tdClearText() {
+  document.getElementById('td-text-input').value = '';
+  document.getElementById('td-word-count').textContent = '0 words';
+  document.getElementById('td-word-count').style.color = 'var(--muted)';
+}
+
+// ── Text Detection: fill examples ──
+const TD_AI_SAMPLE = `The emergence of large language models has fundamentally transformed the landscape of artificial intelligence research and development. Furthermore, it is important to note that these systems demonstrate remarkable capabilities across a wide range of natural language processing tasks. In conclusion, the implications of this technology are far-reaching and multifaceted. Moreover, researchers have begun to explore the potential applications of these models in various domains. It is worth noting that the performance of these systems continues to improve with scale. Overall, the progress in this field represents a significant milestone in the pursuit of artificial general intelligence.`;
+const TD_HUMAN_SAMPLE = `I've been thinking a lot about AI lately - not in the sci-fi "robots taking over" way, but more practically. Last week my colleague showed me something wild: she asked a chatbot to write a cover letter and it came out sounding... robotic? Weirdly formal. Every sentence the same length. No personality. It struck me that the text was technically correct but somehow lifeless. My own writing has typos, weird tangents, sentences that trail off because I got distracted halfway through — and that messiness is actually kind of human? Anyway. Food for thought.`;
+
+function tdFillExample(type) {
+  const txt = type === 'ai' ? TD_AI_SAMPLE : TD_HUMAN_SAMPLE;
+  document.getElementById('td-text-input').value = txt;
+  const words = txt.trim().split(/\s+/).length;
+  const wc = document.getElementById('td-word-count');
+  wc.textContent = words + ' words';
+  wc.style.color = 'var(--accent3)';
+}
+
+// ── Text Detection: file drop ──
+function tdDropFile(e) {
+  e.preventDefault();
+  dragLeave('td-zone');
+  const file = e.dataTransfer.files[0];
+  if (!file) return;
+  const dt = new DataTransfer(); dt.items.add(file);
+  const input = document.getElementById('td-file-input');
+  input.files = dt.files;
+  tdFileChosen(input);
+}
+function tdFileChosen(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const info = document.getElementById('td-file-info');
+  info.style.display = 'block';
+  const sizeMB = (file.size / 1024 / 1024).toFixed(2);
+  const ext = file.name.split('.').pop().toUpperCase();
+  info.innerHTML = `📄 ${file.name}<br>📦 ${sizeMB} MB · ${ext} document`;
+}
+
+// ── Text Detection: main analyze function (simulated) ──
+function analyzeText() {
+  const mode = document.getElementById('td-file-area').style.display === 'none' ? 'text' : 'file';
+  if (mode === 'text') {
+    const txt = document.getElementById('td-text-input').value.trim();
+    if (!txt) return;
+    const words = txt.trim().split(/\s+/).filter(Boolean).length;
+    if (words < 30) { alert('Please enter at least 30 words for reliable detection.'); return; }
+  } else {
+    const file = document.getElementById('td-file-input').files[0];
+    if (!file) { alert('Please select a file first.'); return; }
+  }
+
+  const btn = document.getElementById('td-btn');
+  btn.classList.add('loading'); btn.disabled = true;
+
+  const delay = mode === 'file' ? 3000 : 2200;
+  setTimeout(() => {
+    btn.classList.remove('loading'); btn.disabled = false;
+
+    // Simulate signal scores
+    const txt = document.getElementById('td-text-input').value.trim();
+    // Heuristic: check for AI filler words to nudge score
+    const fillerHits = (txt.match(/\b(furthermore|moreover|in conclusion|it is worth noting|overall|additionally|notably|importantly|significantly|therefore)\b/gi) || []).length;
+    const baseAI = 30 + Math.random() * 40;
+    const fillerBoost = Math.min(fillerHits * 8, 30);
+    const perpAI   = Math.min(95, baseAI + fillerBoost + (Math.random() * 15)).toFixed(1);
+    const burstAI  = Math.max(5, (baseAI - 5 + Math.random() * 20)).toFixed(1);
+    const styleAI  = Math.min(95, (baseAI + fillerBoost * 0.8 + Math.random() * 10)).toFixed(1);
+    const finalScore = (parseFloat(perpAI)*0.45 + parseFloat(burstAI)*0.25 + parseFloat(styleAI)*0.3).toFixed(2);
+    const perplexityRaw = (10 + (100 - parseFloat(perpAI)) * 2.5).toFixed(1);
+
+    let prediction, cls;
+    if (finalScore >= 60)      { prediction = 'AI Generated';                    cls = 'verdict-fake'; }
+    else if (finalScore >= 40) { prediction = 'Uncertain / Possibly AI Generated'; cls = 'verdict-uncertain'; }
+    else                       { prediction = 'Likely Human Written';             cls = 'verdict-real'; }
+
+    const wordCount = txt ? txt.split(/\s+/).filter(Boolean).length : Math.floor(200 + Math.random() * 400);
+    const charCount = txt ? txt.length : wordCount * 5;
+    const excerpt   = txt ? (txt.slice(0, 180) + (txt.length > 180 ? '...' : '')) : 'Extracted from uploaded document...';
+
+    // Render
+    document.getElementById('td-placeholder').style.display = 'none';
+    const result = document.getElementById('td-result');
+    result.classList.add('show');
+
+    const verdict = document.getElementById('td-verdict');
+    verdict.textContent = prediction; verdict.className = 'result-verdict ' + cls;
+
+    document.getElementById('td-conf-val').textContent = finalScore + '%';
+    document.getElementById('td-conf-val').style.color = cls === 'verdict-fake' ? 'var(--danger)' : cls === 'verdict-uncertain' ? 'var(--warn)' : 'var(--accent3)';
+
+    setTimeout(() => {
+      document.getElementById('td-conf-fill').style.width = finalScore + '%';
+      document.getElementById('td-perp-bar').style.width  = perpAI + '%';
+      document.getElementById('td-burst-bar').style.width = burstAI + '%';
+      document.getElementById('td-style-bar').style.width = styleAI + '%';
+    }, 50);
+
+    document.getElementById('td-perp-pct').textContent  = perpAI + '%';
+    document.getElementById('td-burst-pct').textContent = burstAI + '%';
+    document.getElementById('td-style-pct').textContent = styleAI + '%';
+
+    document.getElementById('td-words').textContent = wordCount.toLocaleString();
+    document.getElementById('td-chars').textContent = charCount.toLocaleString();
+    document.getElementById('td-perplexity').textContent = perplexityRaw;
+    document.getElementById('td-excerpt').textContent = excerpt;
+
+    // Save to history after text detection
+    saveToHistory({
+      type: 'text',
+      name: mode === 'file' ? (document.getElementById('td-file-input').files[0]?.name || 'document') : 'Pasted text',
+      prediction,
+      confidence: parseFloat(finalScore),
+      timestamp: new Date().toISOString()
+    });
+  }, delay);
+}
+
+// ── Toast notification ──────────────────────────────────────────
+function showToast(msg, type = 'info') {
+  let toast = document.getElementById('authenx-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'authenx-toast';
+    toast.style.cssText = `
+      position:fixed; bottom:28px; left:50%; transform:translateX(-50%);
+      padding:11px 22px; border-radius:999px; font-size:13px; font-weight:600;
+      font-family:'Syne',sans-serif; z-index:9999; pointer-events:none;
+      box-shadow:0 8px 30px rgba(0,0,0,0.4); transition:opacity 0.3s;
+    `;
+    document.body.appendChild(toast);
+  }
+  const colors = {
+    warn:    'background:#f59e0b;color:#000;',
+    error:   'background:#ef4444;color:#fff;',
+    success: 'background:#10b981;color:#fff;',
+    info:    'background:#7c3aed;color:#fff;',
+  };
+  toast.style.cssText += colors[type] || colors.info;
+  toast.textContent = msg;
+  toast.style.opacity = '1';
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => { toast.style.opacity = '0'; }, 3000);
+}
+
+// ════════════════════════════════════════════════════════════════
+//  AUTH SYSTEM
+// ════════════════════════════════════════════════════════════════
+
+const API = 'http://localhost:5000';
+let authToken = localStorage.getItem('authenx_token') || null;
+let currentUser = JSON.parse(localStorage.getItem('authenx_user') || 'null');
+
+// ── Open / close modal ──
+function openAuth(tab = 'login') {
+  switchAuthTab(tab);
+  document.getElementById('auth-overlay').classList.remove('hidden');
+  clearAuthError();
+}
+function closeAuth() {
+  document.getElementById('auth-overlay').classList.add('hidden');
+}
+function overlayClick(e) {
+  if (e.target === document.getElementById('auth-overlay')) closeAuth();
+}
+
+// ── Switch between login / signup tabs ──
+function switchAuthTab(tab) {
+  document.getElementById('form-login').classList.toggle('hidden', tab !== 'login');
+  document.getElementById('form-signup').classList.toggle('hidden', tab !== 'signup');
+  document.getElementById('tab-login').classList.toggle('active', tab === 'login');
+  document.getElementById('tab-signup').classList.toggle('active', tab === 'signup');
+  clearAuthError();
+}
+
+function showAuthError(msg) {
+  const el = document.getElementById('auth-error');
+  el.textContent = msg;
+  el.classList.add('show');
+}
+function clearAuthError() {
+  const el = document.getElementById('auth-error');
+  el.textContent = '';
+  el.classList.remove('show');
+}
+
+// ── Signup ──
+async function doSignup() {
+  clearAuthError();
+  const username = document.getElementById('su-username').value.trim();
+  const email    = document.getElementById('su-email').value.trim();
+  const password = document.getElementById('su-password').value;
+
+  if (!username || !email || !password) {
+    showAuthError('All fields are required.'); return;
+  }
+
+  const btn = document.getElementById('su-submit');
+  btn.disabled = true; btn.textContent = 'Creating account…';
+
+  try {
+    const res  = await fetch(`${API}/auth/signup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, email, password })
+    });
+    const data = await res.json();
+    if (!res.ok) { showAuthError(data.error || 'Signup failed.'); return; }
+
+    _setSession(data.token, data.user);
+    closeAuth();
+    showToast(`👋 Welcome, ${data.user.username}!`, 'success');
+    renderHeaderAuth();
+    loadHistory();
+  } catch(e) {
+    showAuthError('Cannot reach server. Is Flask running?');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Create Account';
+  }
+}
+
+// ── Login ──
+async function doLogin() {
+  clearAuthError();
+  const email    = document.getElementById('li-email').value.trim();
+  const password = document.getElementById('li-password').value;
+
+  if (!email || !password) {
+    showAuthError('Email and password are required.'); return;
+  }
+
+  const btn = document.getElementById('li-submit');
+  btn.disabled = true; btn.textContent = 'Signing in…';
+
+  try {
+    const res  = await fetch(`${API}/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+    const data = await res.json();
+    if (!res.ok) { showAuthError(data.error || 'Login failed.'); return; }
+
+    _setSession(data.token, data.user);
+    closeAuth();
+    showToast(`👋 Welcome back, ${data.user.username}!`, 'success');
+    renderHeaderAuth();
+    loadHistory();
+  } catch(e) {
+    showAuthError('Cannot reach server. Is Flask running?');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Sign In';
+  }
+}
+
+// ── Logout ──
+function doLogout() {
+  authToken   = null;
+  currentUser = null;
+  localStorage.removeItem('authenx_token');
+  localStorage.removeItem('authenx_user');
+  renderHeaderAuth();
+  renderSidebar([]);
+  showToast('Signed out.', 'info');
+}
+
+function _setSession(token, user) {
+  authToken   = token;
+  currentUser = user;
+  localStorage.setItem('authenx_token', token);
+  localStorage.setItem('authenx_user', JSON.stringify(user));
+}
+
+// ── Render header: logged-in pill OR login/signup buttons ──
+function renderHeaderAuth() {
+  const el = document.getElementById('header-auth');
+  if (currentUser) {
+    const initials = currentUser.username.slice(0, 2).toUpperCase();
+    var pill = document.createElement('div');
+    pill.className = 'user-pill';
+    pill.id = 'user-pill';
+
+    var avatar = document.createElement('div');
+    avatar.className = 'user-avatar';
+    avatar.textContent = initials;
+
+    var uname = document.createElement('span');
+    uname.className = 'user-name';
+    uname.textContent = currentUser.username;
+
+    var caret = document.createElement('span');
+    caret.style.cssText = 'color:var(--muted);font-size:12px;margin-left:4px;';
+    caret.textContent = 'v';
+
+    var dropdown = document.createElement('div');
+    dropdown.className = 'user-dropdown';
+
+    var profileBtn = document.createElement('button');
+    profileBtn.className = 'dd-item';
+    profileBtn.textContent = 'Profile';
+    profileBtn.onclick = function() { openAuth('login'); };
+
+    var logoutBtn = document.createElement('button');
+    logoutBtn.className = 'dd-item danger';
+    logoutBtn.textContent = 'Sign Out';
+    logoutBtn.onclick = doLogout;
+
+    dropdown.appendChild(profileBtn);
+    dropdown.appendChild(logoutBtn);
+    pill.appendChild(avatar);
+    pill.appendChild(uname);
+    pill.appendChild(caret);
+    pill.appendChild(dropdown);
+
+    el.innerHTML = '';
+    el.appendChild(pill);
+
+    pill.addEventListener('click', function(e) {
+      e.stopPropagation();
+      this.classList.toggle('open');
+    });
+    document.addEventListener('click', function() {
+      var p = document.getElementById('user-pill');
+      if (p) p.classList.remove('open');
+    }, { once: true });
+
+  } else {
+    el.innerHTML = '';
+
+    var statusPill = document.createElement('div');
+    statusPill.className = 'status-pill';
+    statusPill.style.marginRight = '8px';
+    var dot = document.createElement('div');
+    dot.className = 'status-dot';
+    var txt = document.createTextNode('API ONLINE');
+    statusPill.appendChild(dot);
+    statusPill.appendChild(txt);
+
+    var loginBtn = document.createElement('button');
+    loginBtn.className = 'btn-login';
+    loginBtn.textContent = 'Sign In';
+    loginBtn.onclick = function() { openAuth('login'); };
+
+    var signupBtn = document.createElement('button');
+    signupBtn.className = 'btn-signup';
+    signupBtn.textContent = 'Sign Up';
+    signupBtn.onclick = function() { openAuth('signup'); };
+
+    el.appendChild(statusPill);
+    el.appendChild(loginBtn);
+    el.appendChild(signupBtn);
+  }
+}
+
+// ════════════════════════════════════════════════════════════════
+//  HISTORY SIDEBAR
+// ════════════════════════════════════════════════════════════════
+
+// In-memory local history (for non-logged-in users)
+let localHistory = JSON.parse(localStorage.getItem('authenx_local_history') || '[]');
+
+function saveToHistory(item) {
+  if (currentUser && authToken) {
+    // Server-side: already persisted by the Flask route
+    // Just reload the sidebar
+    loadHistory();
+  } else {
+    // Local fallback
+    localHistory.unshift({ ...item, id: Date.now().toString() });
+    if (localHistory.length > 30) localHistory = localHistory.slice(0, 30);
+    localStorage.setItem('authenx_local_history', JSON.stringify(localHistory));
+    renderSidebar(localHistory);
+  }
+}
+
+async function loadHistory() {
+  if (!currentUser || !authToken) {
+    // Show local history
+    renderSidebar(localHistory);
+    document.getElementById('history-login-prompt').style.display =
+      localHistory.length === 0 ? 'block' : 'none';
+    document.getElementById('history-list').style.display =
+      localHistory.length > 0 ? 'block' : 'none';
+    return;
+  }
+
+  document.getElementById('history-login-prompt').style.display = 'none';
+
+  try {
+    const res  = await fetch(`${API}/auth/history?limit=50`, {
+      headers: { 'Authorization': `Bearer ${authToken}` }
+    });
+    if (res.status === 401) { doLogout(); return; }
+    const data = await res.json();
+    renderSidebar(data.history || []);
+  } catch(e) {
+    // Server unreachable — show local
+    renderSidebar(localHistory);
+  }
+}
+
+function renderSidebar(items) {
+  const list  = document.getElementById('history-list');
+  const empty = document.getElementById('history-empty');
+  const loginPrompt = document.getElementById('history-login-prompt');
+
+  loginPrompt.style.display = 'none';
+
+  if (!items || items.length === 0) {
+    list.style.display  = 'none';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+  list.style.display  = 'block';
+  list.innerHTML = '';
+
+  const typeLabels = { image:'🖼 Image', video:'🎬 Video', text:'📝 Text', text_detection:'📝 Text', headline:'📰 Headline' };
+  const typeClasses = { image:'image', video:'video', text:'text', text_detection:'text', headline:'headline' };
+
+  items.forEach(function(item) {
+    const typeLabel = typeLabels[item.type] || item.type;
+    const typeClass = typeClasses[item.type] || 'image';
+    const name  = item.filename || item.headline || item.name || 'Unknown';
+    const score = item.confidence_score != null ? item.confidence_score : (item.confidence != null ? item.confidence : 0);
+    const pred  = item.prediction || '';
+    const isReal = pred.toLowerCase().includes('authentic') || pred.toLowerCase().includes('human') || pred.toLowerCase().includes('real');
+    const isUncertain = pred.toLowerCase().includes('uncertain');
+    const scoreClass = isReal ? 'real' : isUncertain ? 'uncertain' : 'fake';
+    const ts = item.timestamp ? new Date(item.timestamp).toLocaleString(undefined, { month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }) : '';
+    const displayName = name.length > 28 ? name.slice(0,28) + '...' : name;
+    const itemId = item.id || '';
+
+    var div = document.createElement('div');
+    div.className = 'history-item';
+    div.setAttribute('data-id', itemId);
+
+    var typeDiv = document.createElement('div');
+    typeDiv.className = 'hi-type ' + typeClass;
+    typeDiv.textContent = typeLabel;
+
+    var nameDiv = document.createElement('div');
+    nameDiv.className = 'hi-name';
+    nameDiv.title = name;
+    nameDiv.textContent = displayName;
+
+    var predDiv = document.createElement('div');
+    predDiv.className = 'hi-pred';
+    predDiv.textContent = pred + ' ';
+    var scoreSpan = document.createElement('span');
+    scoreSpan.className = 'hi-score ' + scoreClass;
+    scoreSpan.textContent = score + '%';
+    predDiv.appendChild(scoreSpan);
+
+    var timeDiv = document.createElement('div');
+    timeDiv.className = 'hi-time';
+    timeDiv.textContent = ts;
+
+    var delBtn = document.createElement('button');
+    delBtn.className = 'hi-delete';
+    delBtn.title = 'Delete';
+    delBtn.textContent = 'x';
+    delBtn.style.cssText = 'position:absolute;top:8px;right:8px;opacity:0;background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;font-weight:700;transition:opacity 0.15s;';
+    delBtn.addEventListener('click', function(e) { deleteHistoryItem(e, itemId); });
+    div.addEventListener('mouseenter', function() { delBtn.style.opacity = '1'; });
+    div.addEventListener('mouseleave', function() { delBtn.style.opacity = '0'; });
+
+    div.appendChild(typeDiv);
+    div.appendChild(nameDiv);
+    div.appendChild(predDiv);
+    div.appendChild(timeDiv);
+    div.appendChild(delBtn);
+    list.appendChild(div);
+  });
+}
+
+async function deleteHistoryItem(e, id) {
+  e.stopPropagation();
+  if (!id) return;
+
+  if (currentUser && authToken) {
+    try {
+      await fetch(`${API}/auth/history/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${authToken}` }
+      });
+    } catch(_) {}
+    loadHistory();
+  } else {
+    localHistory = localHistory.filter(i => i.id !== id);
+    localStorage.setItem('authenx_local_history', JSON.stringify(localHistory));
+    renderSidebar(localHistory);
+  }
+}
+
+function clearHistory() {
+  if (!confirm('Clear all history?')) return;
+  if (currentUser && authToken) {
+    // Delete all server-side entries one-by-one (or extend backend later)
+    fetch(`${API}/auth/history`, { headers: { 'Authorization': `Bearer ${authToken}` }})
+      .then(r => r.json())
+      .then(data => {
+        (data.history || []).forEach(item => {
+          fetch(`${API}/auth/history/${item.id}`, {
+            method: 'DELETE', headers: { 'Authorization': `Bearer ${authToken}` }
+          });
+        });
+        setTimeout(loadHistory, 400);
+      });
+  } else {
+    localHistory = [];
+    localStorage.removeItem('authenx_local_history');
+    renderSidebar([]);
+  }
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('collapsed');
+}
+
+// ── Hook existing analyze functions to also save to history ──
+
+// Wrap analyzeImage to save result
+const __origAnalyzeImage = analyzeImage;
+window.analyzeImage = function() {
+  const input = document.getElementById('img-input');
+  if (!input.files || !input.files[0]) {
+    showToast('⚠️ Please select an image file first.', 'warn'); return;
+  }
+  // Patch the result display to also save history
+  const origBtn = document.getElementById('img-btn');
+  const observer = new MutationObserver(() => {
+    const verdict = document.getElementById('img-verdict').textContent;
+    const score   = document.getElementById('img-conf-val').textContent;
+    if (verdict && score) {
+      observer.disconnect();
+      saveToHistory({
+        type: 'image', name: input.files[0].name,
+        prediction: verdict, confidence: parseFloat(score),
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+  observer.observe(document.getElementById('img-verdict'), { childList: true, characterData: true, subtree: true });
+  __origAnalyzeImage();
+};
+
+// Wrap analyzeVideo
+const __origAnalyzeVideo = analyzeVideo;
+window.analyzeVideo = function() {
+  const input = document.getElementById('vid-input');
+  if (!input.files || !input.files[0]) {
+    showToast('⚠️ Please select a video file first.', 'warn'); return;
+  }
+  const observer = new MutationObserver(() => {
+    const verdict = document.getElementById('vid-verdict').textContent;
+    const score   = document.getElementById('vid-conf-val').textContent;
+    if (verdict && score) {
+      observer.disconnect();
+      saveToHistory({
+        type: 'video', name: input.files[0].name,
+        prediction: verdict, confidence: parseFloat(score),
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+  observer.observe(document.getElementById('vid-verdict'), { childList: true, characterData: true, subtree: true });
+  __origAnalyzeVideo();
+};
+
+// Wrap verifyHeadline
+const __origVerifyHeadline = verifyHeadline;
+window.verifyHeadline = function() {
+  const text = document.getElementById('headline-input').value.trim();
+  if (!text) return;
+  const observer = new MutationObserver(() => {
+    const verdict = document.getElementById('hl-verdict').textContent;
+    const score   = document.getElementById('hl-conf-val').textContent;
+    if (verdict && score) {
+      observer.disconnect();
+      saveToHistory({
+        type: 'headline', headline: text.slice(0, 60),
+        prediction: verdict, confidence: parseFloat(score),
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+  observer.observe(document.getElementById('hl-verdict'), { childList: true, characterData: true, subtree: true });
+  __origVerifyHeadline();
+};
+
+// ── Keyboard shortcuts ──
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeAuth();
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    const overlay = document.getElementById('auth-overlay');
+    if (!overlay.classList.contains('hidden')) {
+      const activeForm = document.getElementById('form-login').classList.contains('hidden') ? 'signup' : 'login';
+      activeForm === 'login' ? doLogin() : doSignup();
+    }
+  }
+});
+
+// Enter key in login/signup fields
+['li-email','li-password'].forEach(id => {
+  document.getElementById(id)?.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+});
+['su-username','su-email','su-password'].forEach(id => {
+  document.getElementById(id)?.addEventListener('keydown', e => { if (e.key === 'Enter') doSignup(); });
+});
+
+// ── Boot ──
+renderHeaderAuth();
+loadHistory();
+</script>
+</body>
+</html>
